@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import argparse
 import requests
-import markdownify
 from bs4 import BeautifulSoup
 import os
 import re
