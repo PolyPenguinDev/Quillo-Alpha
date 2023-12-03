@@ -8,7 +8,7 @@ import json
 import html2text
 
 # Define global constant
-TAB_FILE = 'tabs.json'
+TAB_FILE = "tabs.json"
 
 # Define global constants
 BOLD_MAP = {"A": "𝗔", "B": "𝗕", "C": "𝗖", "D": "𝗗", "E": "𝗘", "F": "𝗙", "G": "𝗚", "H": "𝗛", "I": "𝗜", "J": "𝗝",
@@ -149,8 +149,8 @@ def main():
                 json.dump(tabs_data, f)
     elif args.tab:
         clear_console()
+        tabs_data["current"] = int(args.site)
         print_tabs(tabs_data)
-        tabs_data["current"] = int(args.site) - 1
         with open(TAB_FILE, 'w') as f:
             json.dump(tabs_data, f)
     elif args.search:
