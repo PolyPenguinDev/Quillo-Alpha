@@ -70,38 +70,44 @@ def clear_console():
     os.system('cls' if os.name == 'nt' else 'clear')
 
 def main():
-    clear_console()
     parser = argparse.ArgumentParser(description="A simple command-line program.")
     parser.add_argument("site", help="The website to view.")
-    parser.add_argument("-o", "--open", action="store_true", help="Opens a website.")
-    parser.add_argument("-v", "--view", action="store_true", help="Formats HTML into a more readable format")
-    parser.add_argument("-g", "--go", action="store_true", help="Opens a link that is on the webpage")
-    parser.add_argument("-s", "--search", action="store_true", help="Searches something on google")
+    parser.add_argument("-o", "--open", action="store_true", help="Opens a website in a new tab.")
+    parser.add_argument("-t", "--tab", action="store_true", help="Switches tab.")
+    parser.add_argument("-f", "--format", action="store_true", help="Formats HTML into a more readable format")
+    parser.add_argument("-g", "--go", action="store_true", help="Switches the current tab to a new website.")
+    parser.add_argument("-s", "--search", action="store_true", help="Searches something on google.")
+    parser.add_argument("-c", "--close", action="store_true", help="closes a tab.")
 
     args = parser.parse_args()
 
-    if args.open:
+    if args.open or args.go:
+        clear_console()
         try:
             int(args.site)
             with open('tabs.json', 'r') as f:
                 l = json.load(f)
-            args.site = l["tabs"][l["current"]["links"]][int(args.site)-1][0]
+            args.site = l["tabs"][l["current"]-1]["links"][int(args.site)-1][0]
         except:
             args.site = f"http://www.{args.site}" if not args.site.startswith('http') else args.site
         print(f"Loading {args.site} ...")
         response = requests.get(args.site)
         soup = BeautifulSoup(response.content, 'html.parser')
         out = remove_tags(soup.prettify())
-        if args.view:
+        if args.format:
             title = soup.title.text.strip()
             clear_console()
             print(f"\n---------⃝🖋️ Quillo Text-Based Browser---------")
-            for i in range(len(f"| 1. {title} |")):
-                print("─", end = "")
-            print()
-            print("|", end = "")
             with open('tabs.json', 'r') as f:
                 l = json.load(f)
+            job_elements = soup.find_all()
+            out = replace_bullets_with_symbol(h.handle(out))
+            out2 = bold(replace_links(out)[0])
+            if args.open:
+                l["tabs"].append({"title": title, "links":replace_links(out)[1], "content":out2})
+                l["current"] = len(l["tabs"])
+            else:
+                l["tabs"][l["current"]-1]={"title": title, "links":replace_links(out)[1], "content":out2}
             n = 0
             s = "|"
             for i in l["tabs"]:
@@ -114,29 +120,48 @@ def main():
             for i in range(len(s)):
                     print("─", end = "")
             print("\n")
-            job_elements = soup.find_all()
-            out = replace_bullets_with_symbol(h.handle(out))
-            print(bold(replace_links(out)[0]))
-            with open('links.json', 'w') as f:
-                json.dump(replace_links(out)[1], f)
+            print(out2)
+            with open('tabs.json', 'w') as f:
+                json.dump(l, f)
+    elif args.tab:
+        clear_console()
+        print(f"\n---------⃝🖋️ Quillo Text-Based Browser---------")
+        with open('tabs.json', 'r') as f:
+            l = json.load(f)
+        n = 0
+        s = "|"
+        for i in l["tabs"]:
+            n+=1
+            s+=" "+str(n)+". "+i["title"]+" |"
+        for i in range(len(s)):
+            print("─", end = "")
+        print()
+        print(s)
+        for i in range(len(s)):
+                print("─", end = "")
+        print("\n")
+        print(l["tabs"][int(args.site)-1]["content"])
+        l["current"]=int(args.site)-1
+        with open('tabs.json', 'w') as f:
+            json.dump(l, f)
     elif args.search:
+        clear_console()
         args.site = f"http://www.google.com/search?q={args.site}"
         print(f"Loading {args.site} ...")
         response = requests.get(args.site)
         soup = BeautifulSoup(response.content, 'html.parser')
         title = soup.title.text.strip()
         clear_console()
-        print(f"\n------⃝🖋️ Quillo Text-Based Browser -----\n")
-        print("───────────────────────────────────────────────────────────────────")
-        print(f"| 1. {title} |")
-        print("───────────────────────────────────────────────────────────────────")
-        print("""
+        print(f"\n---------⃝🖋️ Quillo Text-Based Browser---------")
+        with open('tabs.json', 'r') as f:
+            l = json.load(f)
+        content = """
    ___                  _     
   /  _|  ___  ___  __ _| |___ 
  ▕  (| |/ _ \/ _ \/ _` | / -_)
   \____|\___/\___/\__, |_\___|
                   |___/      
-              """)
+              """
         rso_div = soup.find('div', id='main')
         nested_divs = rso_div.find_all('div')
         links = []
@@ -147,12 +172,56 @@ def main():
                     link_text = a_tag.get("href")
                     soupp = BeautifulSoup(a_tag.prettify(), 'html.parser')
                     text_content = soupp.find('h3', class_='zBAuLc l97dzf').div.text
-                    print(f"{text_content} [{str(len(links)+1)}]")
+                    content += f"{text_content} [{str(len(links)+1)}]"
                     links.append(["https://www.google.com/"+link_text])
                 except:
                     pass
-        with open('links.json', 'w') as f:
-            json.dump(links, f)
+        l["tabs"].append({"title":title, "content":content, "links" : links})
+        n = 0
+        s = "|"
+        for i in l["tabs"]:
+            n+=1
+            s+=" "+str(n)+". "+i["title"]+" |"
+        for i in range(len(s)):
+            print("─", end = "")
+        print()
+        print(s)
+        for i in range(len(s)):
+                print("─", end = "")
+        print("\n")
+        print(content)
+        with open('tabs.json', 'w') as f:
+            json.dump(l, f)
+    elif args.close:
+        with open('tabs.json', 'r') as f:
+            l = json.load(f)
+        if int(args.site) < l["current"]:
+            l["current"] -= 1
+        l["tabs"].pop(int(args.site)-1)
+        with open('tabs.json', 'w') as f:
+            json.dump(l, f)
+        args.site = str(l["current"])
+        clear_console()
+        print(f"\n---------⃝🖋️ Quillo Text-Based Browser---------")
+        with open('tabs.json', 'r') as f:
+            l = json.load(f)
+        n = 0
+        s = "|"
+        for i in l["tabs"]:
+            n+=1
+            s+=" "+str(n)+". "+i["title"]+" |"
+        for i in range(len(s)):
+            print("─", end = "")
+        print()
+        print(s)
+        for i in range(len(s)):
+                print("─", end = "")
+        print("\n")
+        print(l["tabs"][int(args.site)-1]["content"])
+        l["current"]=int(args.site)-1
+        with open('tabs.json', 'w') as f:
+            json.dump(l, f)
+        
 
 if __name__ == "__main__":
     main()
