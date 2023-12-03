@@ -227,8 +227,8 @@ def close_tab(tabs_data, tab_index):
 Use `quillo -s "query"` to search google
 Use `quillo -o -f "URL" to open a website in a new tab.
 Use `quillo -g -f "URL" to open a website in a this tab.
-Use `quillo -t tab` to change the tab.
-Use `quillo -c tab` to close a
+Use `quillo -t TAB` to change the tab.
+Use `quillo -c TAB` to close a tab.
                                   
 
                        """})
