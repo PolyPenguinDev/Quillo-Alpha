@@ -214,8 +214,25 @@ def close_tab(tabs_data, tab_index):
     if tab_index < tabs_data["current"]:
         tabs_data["current"] -= 1
     tabs_data["tabs"].pop(tab_index - 1)
-    print_tabs(tabs_data)
     tabs_data["current"] = tab_index - 1
+    clear_console()
+    if len(tabs_data["tabs"]) == 0:
+        tabs_data["tabs"].append({"title":"New Tab", "content":"""     _
+ ╭──╱ |    ___       _ _ _     
+ | ╱ ╱ |  / _ \ _  _(_) | |___ 
+ |╱╱   | ▕ (_) | || | | | / _ \\
+ ▀─────╯  \__\_\\\\_,_|_|_|_\___/
+ NEW TAB
+                                
+Use `quillo -s "query"` to search google
+Use `quillo -o -f "URL" to open a website in a new tab.
+Use `quillo -g -f "URL" to open a website in a this tab.
+Use `quillo -t tab` to change the tab.
+Use `quillo -c tab` to close a
+                                  
+
+                       """})
+    print_tabs(tabs_data)
     return tabs_data
 
 if __name__ == "__main__":
