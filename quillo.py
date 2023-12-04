@@ -9,7 +9,7 @@ import json
 import html2text
 
 # Define global constant
-TAB_FILE = "tabs.json"
+TAB_FILE = "C:\\Users\\caleb\\OneDrive\\Documents\\Quillo\\tabs.json"
 
 CIRCLE_MAP = {"1": "❶", "2": "❷", "3": "❸", "4": "❹", "5": "❺", "6": "❻", "7": "❼", "8": "❽", "9": "❾", "0": "⓿"}
 UB_CIRCLE_MAP = {"1": "①", "2": "②", "3": "③", "4": "④", "5": "⑤", "6": "⑥", "7": "⑦", "8": "⑧", "9": "⑨", "0": "⓪"}
@@ -126,6 +126,13 @@ def save_tabs(tabs_data):
     """
     Save tabs data to the file.
     """
+    for i in tabs_data["overrides"]:
+        if i.startswith("clear"):
+            tabs_data["clear"]= not tabs_data["clear"]
+        if i.startswith("format"):
+            tabs_data["format"]= not tabs_data["format"]
+    del tabs_data["overrides"]
+
     with file(TAB_FILE, 'w') as f:
         json.dump(tabs_data, f)
 
@@ -138,11 +145,28 @@ def save_tabs(tabs_data):
 @click.option("-s", "--search", type=str, help="Searches something on google.")
 @click.option("-c", "--close", type=int, help="closes a tab.")
 @click.option("-a", "--advanced", type=str, help="changes advanced settings.")
+@click.option("-v", "--overrides", type=str, help="overrides advanced settings.")
 @click.option("-n", "--newtab", is_flag=True, help="Opens a new tab")
-def main(open, tab, format, go, search, close, advanced, newtab):
+def main(open, tab, format, go, search, close, advanced, newtab, overrides):
     # Command-line argument parsing
     tabs_data = load_tabs()
-
+    tabs_data.update({"overrides":[]})
+    if overrides:
+        tabs_data["overrides"] = overrides.split(", ")
+        for i in overrides.split(", "):
+            if i.startswith("clear"):
+                if tabs_data["clear"] == "true" in i.lower():
+                    tabs_data["overrides"].remove(i)
+                else:
+                    tabs_data["clear"] = "true" in i.lower()
+            if i.startswith("format"):
+                if tabs_data["format"] == "true" in i.lower():
+                    tabs_data["overrides"].remove(i)
+                else:
+                    tabs_data["format"] = "true" in i.lower()
+    with file(TAB_FILE, 'w') as f:
+        json.dump(tabs_data, f)
+    format = format ^ tabs_data["format"]
     if open or go:
         site = go
         if open:
@@ -152,9 +176,10 @@ def main(open, tab, format, go, search, close, advanced, newtab):
             site = tabs_data["tabs"][tabs_data["current"] - 1]["links"][int(site) - 1][0]
         else:
             site = f"http://www.{site}" if not site.startswith('http') else site
-        host = "https://"+site[(site[8::].find('/')+8)::]
+        host = "https://"+site.split("/")[2]
         print(f"Loading {site} ...")
         response = requests.get(site)
+        site = response.url
         soup = BeautifulSoup(response.content, 'html.parser')
         formatted_html = remove_tags(soup.prettify())
         if format:
@@ -223,16 +248,22 @@ def main(open, tab, format, go, search, close, advanced, newtab):
         tabs_data = close_tab(tabs_data, close)
         save_tabs(tabs_data)
     elif advanced:
+        e = load_tabs()
         if advanced == "help":
-            print("""How to use Quillo -a
+            print(f"""How to use Quillo -a
                   
 Usage: \033[1m\033[3mquillo -a SETTING=VALUE\033[0m
                   
 Settings:
-    •\033[1m\033[3mclear\033[0m - clear the console when running commands""")
+    •\033[1m\033[3mclear\033[0m - clear the console when running commands. Current value: \033[1m\033[3m{str(e["clear"])}\033[0m
+    •\033[1m\033[3mformat\033[0m - make it so you don't need to do -f every time. Current value:a \033[1m\033[3m{str(e["format"])}\033[0m""")
+    
         elif advanced.startswith("clear="):
-            e = load_tabs()
             e["clear"] = "true" in advanced.lower()
+            save_tabs(e)
+        elif advanced.startswith("format="):
+            e = load_tabs()
+            e["format"] = "true" in advanced.lower()
             save_tabs(e)
     elif newtab:
         clear_console()
@@ -249,7 +280,7 @@ def print_tabs(tabs_data):
     """
     Print the tabs data to the console.
     """
-    print(f"\n---------⃝🖋️ Quillo Text-Based Browser---------")
+    print(f"\n---------⃝🖋️ Quillo Text-Based Browser v1.0-B1---------")
     n = 0
     s = "|"
     for tab in tabs_data["tabs"]:
@@ -290,6 +321,3 @@ def close_tab(tabs_data, tab_index):
 
 if __name__ == "__main__":
     main()
-
-
-
