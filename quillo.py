@@ -18,7 +18,7 @@ html_to_text = html2text.HTML2Text()
 html_to_text.ignore_links = False
 file = builtins.open
 
-def newtab():
+def newtabd():
     return """     _
  ╭──╱ |    ___       _ _ _     
  | ╱ ╱ |  / _ \ _  _(_) | |___ 
@@ -135,7 +135,8 @@ def save_tabs(tabs_data):
 @click.option("-s", "--search", type=str, help="Searches something on google.")
 @click.option("-c", "--close", type=int, help="closes a tab.")
 @click.option("-a", "--advanced", type=str, help="changes advanced settings.")
-def main(open, tab, format, go, search, close, advanced):
+@click.option("-n", "--newtab", is_flag=True, help="Opens a new tab")
+def main(open, tab, format, go, search, close, advanced, newtab):
     # Command-line argument parsing
     tabs_data = load_tabs()
 
@@ -203,10 +204,11 @@ def main(open, tab, format, go, search, close, advanced):
             if a_tag:
                 try:
                     link_text = a_tag.get("href")
-                    soupp = BeautifulSoup(a_tag.prettify(), 'html.parser')
-                    text_content = soupp.find('h3', class_='zBAuLc l97dzf').div.text
-                    content += f"{text_content} [{str(len(links) + 1)}]"
-                    links.append(["https://www.google.com/" + link_text])
+                    if not ["https://www.google.com/" + link_text] in links:
+                        soupp = BeautifulSoup(a_tag.prettify(), 'html.parser')
+                        text_content = soupp.find('h3', class_='zBAuLc l97dzf').div.text
+                        content += f"{text_content} [{str(len(links) + 1)}]"
+                        links.append(["https://www.google.com/" + link_text])
                 except:
                     pass
         tabs_data["tabs"].append({"title": title, "content": content, "links": links})
@@ -228,6 +230,12 @@ Settings:
             e = load_tabs()
             e["clear"] = "true" in advanced.lower()
             save_tabs(e)
+    elif newtab:
+        clear_console()
+        tabs_data["tabs"].append({"title": "New Tab", "content": newtabd()})
+        tabs_data["current"] = len(tabs_data["tabs"])
+        print_tabs(tabs_data)
+        save_tabs(tabs_data)
     else:
         clear_console()
         print_tabs(tabs_data)
@@ -271,11 +279,12 @@ def close_tab(tabs_data, tab_index):
     tabs_data["tabs"].pop(tab_index - 1)
     clear_console()
     if len(tabs_data["tabs"]) == 0:
-        tabs_data["tabs"].append({"title": "New Tab", "content": newtab()})
+        tabs_data["tabs"].append({"title": "New Tab", "content": newtabd()})
     print_tabs(tabs_data)
     return tabs_data
 
 
 if __name__ == "__main__":
     main()
+
 
