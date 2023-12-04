@@ -77,7 +77,7 @@ def replace_bullets_with_symbol(markdown_text, symbol='•'):
     return re.sub(pattern, symbol, markdown_text, flags=re.MULTILINE)
 
 
-def replace_links(markdown):
+def replace_links(markdown, url_start):
     """
     Replace links in the markdown text and extract them for future reference.
     """
@@ -87,7 +87,10 @@ def replace_links(markdown):
 
     for i, (text, link) in enumerate(matches, start=1):
         reference = f'{text} [{i}]'
-        link_list[i - 1].append(link)
+        if link.startswith("/"):
+            link_list[i - 1].append(url_start+link)
+        else:
+            link_list[i - 1].append(link)
         markdown = link_pattern.sub(reference, markdown, 1)
 
     return markdown, link_list
@@ -149,6 +152,7 @@ def main(open, tab, format, go, search, close, advanced, newtab):
             site = tabs_data["tabs"][tabs_data["current"] - 1]["links"][int(site) - 1][0]
         else:
             site = f"http://www.{site}" if not site.startswith('http') else site
+        host = "https://"+site[(site[8::].find('/')+8)::]
         print(f"Loading {site} ...")
         response = requests.get(site)
         soup = BeautifulSoup(response.content, 'html.parser')
@@ -158,20 +162,20 @@ def main(open, tab, format, go, search, close, advanced, newtab):
             clear_console()
             formatted_html = replace_bullets_with_symbol(html_to_text.handle(formatted_html))
             formatted_html_old = formatted_html
-            formatted_html = boldify(replace_links(formatted_html)[0])
+            formatted_html = boldify(replace_links(formatted_html, host)[0])
         else:
             title = soup.title.text.strip()
             clear_console()
             formatted_html = soup.prettify()
         if open:
             if format:
-                tabs_data["tabs"].append({"title": title, "links": replace_links(formatted_html)[1], "content": formatted_html})
+                tabs_data["tabs"].append({"title": title, "links": replace_links(formatted_html, host)[1], "content": formatted_html})
             else:
                 tabs_data["tabs"].append({"title": title, "links": [], "content": formatted_html})
             tabs_data["current"] = len(tabs_data["tabs"])
         else:
             if format:
-                tabs_data["tabs"][tabs_data["current"] - 1] = {"title": title, "links": replace_links(formatted_html_old)[1], "content": formatted_html}
+                tabs_data["tabs"][tabs_data["current"] - 1] = {"title": title, "links": replace_links(formatted_html_old, host)[1], "content": formatted_html}
             else:
                 tabs_data["tabs"][tabs_data["current"] - 1] = {"title": title, "links": [], "content": formatted_html}
         print_tabs(tabs_data)
@@ -286,5 +290,6 @@ def close_tab(tabs_data, tab_index):
 
 if __name__ == "__main__":
     main()
+
 
 
