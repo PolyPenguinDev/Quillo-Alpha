@@ -10,19 +10,27 @@ import html2text
 # Define global constant
 TAB_FILE = "tabs.json"
 
-# Define global constants
-BOLD_MAP = {"A": "𝗔", "B": "𝗕", "C": "𝗖", "D": "𝗗", "E": "𝗘", "F": "𝗙", "G": "𝗚", "H": "𝗛", "I": "𝗜", "J": "𝗝",
-            "K": "𝗞", "L": "𝗟", "M": "𝗠", "N": "𝗡", "O": "𝗢", "P": "𝗣", "Q": "𝗤", "R": "𝗥", "S": "𝗦", "T": "𝗧",
-            "U": "𝗨", "V": "𝗩", "W": "𝗪", "X": "𝗫", "Y": "𝗬", "Z": "𝗭", "a": "𝗮", "b": "𝗯", "c": "𝗰", "d": "𝗱",
-            "e": "𝗲", "f": "𝗳", "g": "𝗴", "h": "𝗵", "i": "𝗶", "j": "𝗷", "k": "𝗸", "l": "𝗹", "m": "𝗺", "n": "𝗻",
-            "o": "𝗼", "p": "𝗽", "q": "𝗾", "r": "𝗿", "s": "𝘀", "t": "𝘁", "u": "𝘂", "v": "𝘃", "w": "𝘄", "x": "𝘅",
-            "y": "𝘆", "z": "𝘇", "1": "𝟭", "2": "𝟮", "3": "𝟯", "4": "𝟰", "5": "𝟱", "6": "𝟲", "7": "𝟳", "8": "𝟴",
-            "9": "𝟵", "0": "𝟬"}
 
+CIRCLE_MAP = {"1":"❶","2":"❷","3":"❸","4":"❹","5":"❺","6":"❻","7":"❼","8":"❽","9":"❾","0":"⓿"}
+UB_CIRCLE_MAP = {"1":"①","2":"②","3":"③","4":"④","5":"⑤","6":"⑥","7":"⑦","8":"⑧","9":"⑨","0":"⓪"}
 # Initialize HTML to Text converter
 html_to_text = html2text.HTML2Text()
 html_to_text.ignore_links = False
+def newtab():
+    return """     _
+ ╭──╱ |    ___       _ _ _     
+ | ╱ ╱ |  / _ \ _  _(_) | |___ 
+ |╱╱   | ▕ (_) | || | | | / _ \\
+ ▀─────╯  \__\_\\\\_,_|_|_|_\___/
+ NEW TAB
+Use \033[1m\033[3mquillo -s "query"\033[0m to search google
+Use \033[1m\033[3mquillo -o -f "URL"\033[0m to open a website in a new tab.
+Use \033[1m\033[3mquillo -g -f "URL"\033[0m to open a website in a this tab.
+Use \033[1m\033[3mquillo -t TAB\033[0m to change the tab.
+Use \033[1m\033[3mquillo -c TAB\033[0m to close a tab.
+                                  
 
+                       """
 def boldify(text):
     """
     Replace characters in the text with their bold equivalents using the BOLD_MAP.
@@ -44,10 +52,12 @@ def boldify(text):
                     if char != "#":
                         t += char
                 else:
-                    t += BOLD_MAP.get(char, char)
+                    t += char
             else:
                 t += char
             ins += 1
+        if is_bold and len(t) > 2:
+            t = "\033[1m" +t +"\033[0m"
         if bold_text != "":
             bold_text += "\n" + t
             if line_z and len(t) > 2:
@@ -91,7 +101,8 @@ def clear_console():
     """
     Clear the console screen.
     """
-    os.system('cls' if os.name == 'nt' else 'clear')
+    if load_tabs()["clear"]:
+        os.system('cls' if os.name == 'nt' else 'clear')
 
 def load_tabs():
     """
@@ -117,6 +128,7 @@ def main():
     parser.add_argument("-g", "--go", action="store_true", help="Switches the current tab to a new website.")
     parser.add_argument("-s", "--search", action="store_true", help="Searches something on google.")
     parser.add_argument("-c", "--close", action="store_true", help="closes a tab.")
+    parser.add_argument("-a", "--advanced", action="store_true", help="changes advanced settings.")
 
     args = parser.parse_args()
 
@@ -139,14 +151,24 @@ def main():
             formatted_html = replace_bullets_with_symbol(html_to_text.handle(formatted_html))
             formatted_html_old = formatted_html
             formatted_html = boldify(replace_links(formatted_html)[0])
-            if args.open:
+        else:
+            title = soup.title.text.strip()
+            clear_console() 
+            formatted_html = soup.prettify()
+        if args.open:
+            if args.format:
                 tabs_data["tabs"].append({"title": title, "links": replace_links(formatted_html)[1], "content": formatted_html})
-                tabs_data["current"] = len(tabs_data["tabs"])
             else:
+                tabs_data["tabs"].append({"title": title, "links": [], "content": formatted_html})
+            tabs_data["current"] = len(tabs_data["tabs"])
+        else:
+            if args.format:
                 tabs_data["tabs"][tabs_data["current"] - 1] = {"title": title, "links": replace_links(formatted_html_old)[1], "content": formatted_html}
-            print_tabs(tabs_data)
-            with open(TAB_FILE, 'w') as f:
-                json.dump(tabs_data, f)
+            else:
+                tabs_data["tabs"][tabs_data["current"] - 1] = {"title": title, "links": [], "content": formatted_html}
+        print_tabs(tabs_data)
+        with open(TAB_FILE, 'w') as f:
+            json.dump(tabs_data, f)
     elif args.tab:
         clear_console()
         tabs_data["current"] = int(args.site)
@@ -161,7 +183,6 @@ def main():
         soup = BeautifulSoup(response.content, 'html.parser')
         title = soup.title.text.strip()
         clear_console()
-        print(f"\n---------⃝🖋️ Quillo Text-Based Browser---------")
         content = """
    ___                  _     
   /  _|  ___  ___  __ _| |___ 
@@ -184,6 +205,7 @@ def main():
                 except:
                     pass
         tabs_data["tabs"].append({"title": title, "content": content, "links": links})
+        tabs_data["current"] = len(tabs_data["tabs"])
         print_tabs(tabs_data)
         with open(TAB_FILE, 'w') as f:
             json.dump(tabs_data, f)
@@ -191,6 +213,21 @@ def main():
         tabs_data = close_tab(tabs_data, int(args.site))
         with open(TAB_FILE, 'w') as f:
             json.dump(tabs_data, f)
+    elif args.advanced:
+        if args.site == "help":
+            print("""How to use Quillo -a
+                  
+Usage: \033[1m\033[3mquillo -a \"SETTING=VALUE\"\033[0m
+                  
+Settings:
+    •\033[1m\033[3mclear\033[0m - clear the console when running commands""")
+        elif args.site.startswith("clear="):
+            e = load_tabs()
+            if "True" in args.site:
+                e["clear"] = True
+            else:
+                e["clear"] = False
+            save_tabs(e)
 
 def print_tabs(tabs_data):
     """
@@ -201,7 +238,18 @@ def print_tabs(tabs_data):
     s = "|"
     for tab in tabs_data["tabs"]:
         n += 1
-        s += f" {n}. {tab['title']} |"
+        p= str(n)
+        if n == tabs_data["current"]:
+            p2 = ""
+            for i in p:
+                p2+=CIRCLE_MAP[i]
+            p = p2
+        else:
+            p2 = ""
+            for i in p:
+                p2+=UB_CIRCLE_MAP[i]
+            p = p2
+        s += f" {p} {tab['title']} |"
     print("\n" + "─" * len(s))
     print(s)
     print("─" * len(s) + "\n")
@@ -211,29 +259,17 @@ def close_tab(tabs_data, tab_index):
     """
     Close the specified tab.
     """
-    if tab_index < tabs_data["current"]:
+    if tab_index <= tabs_data["current"]:
         tabs_data["current"] -= 1
+    if tabs_data["current"] ==0:
+        tabs_data["current"] = 1
     tabs_data["tabs"].pop(tab_index - 1)
-    tabs_data["current"] = tab_index - 1
     clear_console()
     if len(tabs_data["tabs"]) == 0:
-        tabs_data["tabs"].append({"title":"New Tab", "content":"""     _
- ╭──╱ |    ___       _ _ _     
- | ╱ ╱ |  / _ \ _  _(_) | |___ 
- |╱╱   | ▕ (_) | || | | | / _ \\
- ▀─────╯  \__\_\\\\_,_|_|_|_\___/
- NEW TAB
-                                
-Use `quillo -s "query"` to search google
-Use `quillo -o -f "URL" to open a website in a new tab.
-Use `quillo -g -f "URL" to open a website in a this tab.
-Use `quillo -t TAB` to change the tab.
-Use `quillo -c TAB` to close a tab.
-                                  
-
-                       """})
+        tabs_data["tabs"].append({"title":"New Tab", "content":newtab()})
     print_tabs(tabs_data)
     return tabs_data
 
 if __name__ == "__main__":
     main()
+
